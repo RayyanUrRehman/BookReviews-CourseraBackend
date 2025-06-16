@@ -41,6 +41,63 @@ regd_users.post("/login", (req, res) => {
   return res.status(200).json({ message: "User successfully logged in", token: accessToken });
 });
 
+regd_users.put("/auth/review/:isbn", (req, res) => {
+  const isbn = req.params.isbn;
+  const review = req.query.review;
+  const username = req.session.authorization?.username;
+
+  // Check for valid login and input
+  if (!username) {
+    return res.status(401).json({ message: "User not logged in" });
+  }
+
+  if (!review) {
+    return res.status(400).json({ message: "Review query is missing" });
+  }
+
+  // Check if the book exists
+  if (!books[isbn]) {
+    return res.status(404).json({ message: "Book not found" });
+  }
+
+  // Initialize reviews object if it doesn't exist
+  if (!books[isbn].reviews) {
+    books[isbn].reviews = {};
+  }
+
+  // Add or update the review by username
+  books[isbn].reviews[username] = review;
+
+  return res.status(200).json({
+    message: "Review added/updated successfully",
+    reviews: books[isbn].reviews
+  });
+});
+
+
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+  const isbn = req.params.isbn;
+  const username = req.session.authorization?.username;
+
+  if (!username) {
+    return res.status(401).json({ message: "User not logged in" });
+  }
+
+  if (!books[isbn]) {
+    return res.status(404).json({ message: "Book not found" });
+  }
+
+  if (!books[isbn].reviews || !books[isbn].reviews[username]) {
+    return res.status(404).json({ message: "No review by this user to delete" });
+  }
+
+  // Delete the review
+  delete books[isbn].reviews[username];
+
+  return res.status(200).json({ message: "Review deleted successfully" });
+});
+
+
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;
 module.exports.users = users;
